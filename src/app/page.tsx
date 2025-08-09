@@ -101,9 +101,6 @@ export default function Home() {
           {invaderMsg}
         </div>
       )}
-      <div className="flex flex-col items-center mr-8">
-        <MoonlitGreatswordImage />
-      </div>
       <div className="w-full max-w-xl bg-[#23201b] rounded-2xl shadow-lg p-8 flex flex-col gap-8 items-center border-4 border-[#bfa76a]">
         <HandshakeImage />
         <h1 className="text-2xl font-bold text-center mb-2 text-[#bfa76a] drop-shadow">AI Q&A</h1>
