@@ -3,18 +3,68 @@
 
 import HandshakeImage from "./HandshakeImage";
 import MoonlitGreatswordImage from "./MoonlitGreatswordImage";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { translations } from "./i18n";
+import { invaderNPCs, invaderLoreQuestions } from "./invaderData";
 
 export default function Home() {
   const [lang, setLang] = useState<'en' | 'es'>('en');
   const [question, setQuestion] = useState("");
-  const [chat, setChat] = useState<{ question: string; answer: string }[]>([]);
+  const [chat, setChat] = useState<{ question: string; answer: string; invader?: boolean }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [jollyCoop, setJollyCoop] = useState(false);
+  const [invaderMsg, setInvaderMsg] = useState<string | null>(null);
+  const invaderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const invaderIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const t = translations[lang];
+
+  // Helper to pick a random element
+  function randomFrom<T>(arr: T[]): T {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  // Helper to pick a random invader and question
+  function getRandomInvader() {
+    const npc = randomFrom(invaderNPCs);
+    let game: keyof typeof invaderLoreQuestions = "Dark Souls";
+    if (npc.includes("Elden Ring")) game = "Elden Ring";
+    else if (npc.includes("Bloodborne")) game = "Bloodborne";
+    else {
+      // Guess by name
+      if (["Nerijus", "Okina", "Henricus", "Anastasia", "Magnus", "Eleonora", "Juno Hoslow"].some(n => npc.includes(n))) game = "Elden Ring";
+      if (["Yurie", "Henryk", "Bell-ringing Woman", "Bloody Crow", "Shade of Father Gascoigne", "Madman Waller"].some(n => npc.includes(n))) game = "Bloodborne";
+    }
+    const loreQ = randomFrom(invaderLoreQuestions[game]);
+    return { npc, game, loreQ };
+  }
+
+  // Timed invader event logic
+  useEffect(() => {
+    function triggerInvader() {
+      const { npc, game, loreQ } = getRandomInvader();
+      setInvaderMsg(`Invaded by ${npc}`);
+      setChat(prev => [
+        {
+          question: `Invader ${npc} (${game}): ${loreQ}`,
+          answer: "",
+          invader: true
+        },
+        ...prev
+      ]);
+      setTimeout(() => setInvaderMsg(null), 6000); // Hide message after 6s
+    }
+    // First after 5 min, then every 20 min
+    invaderTimeoutRef.current = setTimeout(() => {
+      triggerInvader();
+      invaderIntervalRef.current = setInterval(triggerInvader, 20 * 60 * 1000);
+    }, 5 * 60 * 1000);
+    return () => {
+      if (invaderTimeoutRef.current) clearTimeout(invaderTimeoutRef.current);
+      if (invaderIntervalRef.current) clearInterval(invaderIntervalRef.current);
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,7 +91,16 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex flex-row items-center justify-center bg-gradient-to-br from-[#1a1a1a] via-[#2d2a2e] to-[#bfa76a] p-4">
+    <div className="min-h-screen flex flex-row items-center justify-center bg-gradient-to-br from-[#1a1a1a] via-[#2d2a2e] to-[#bfa76a] p-4 relative">
+      {/* Invader message overlay */}
+      {invaderMsg && (
+        <div
+          className="fixed top-1/4 left-1/2 -translate-x-1/2 z-50 text-5xl text-red-700 font-serif animate-pulse pointer-events-none select-none"
+          style={{ fontFamily: 'Garamond, serif', textShadow: '2px 2px 8px #000' }}
+        >
+          {invaderMsg}
+        </div>
+      )}
       <div className="flex flex-col items-center mr-8">
         <MoonlitGreatswordImage />
       </div>
@@ -94,8 +153,13 @@ export default function Home() {
             <div className="mt-2 flex flex-col gap-4">
               {chat.map((entry, idx) => (
                 <div key={idx} className="">
-                  <div className="font-semibold text-[#bfa76a]">{t.language === 'Español' ? 'Pregunta' : 'Question'}: <span className="font-normal text-white">{entry.question}</span></div>
-                  <div className="text-[#e5c97b] mt-1">{entry.answer}</div>
+                  <div className={`font-semibold ${entry.invader ? 'text-red-700 font-serif' : 'text-[#bfa76a]'}`} style={entry.invader ? { fontFamily: 'Garamond, serif' } : {}}>
+                    {entry.invader ? entry.question : `${t.language === 'Español' ? 'Pregunta' : 'Question'}: `}
+                    {!entry.invader && <span className="font-normal text-white">{entry.question}</span>}
+                  </div>
+                  {entry.answer && (
+                    <div className={entry.invader ? "text-red-400 mt-1" : "text-[#e5c97b] mt-1"}>{entry.answer}</div>
+                  )}
                 </div>
               ))}
             </div>
