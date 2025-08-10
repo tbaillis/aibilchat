@@ -18,4 +18,13 @@ export const translations = {
     loading: "Cargando...",
     error: "Ocurrió un error. Inténtalo de nuevo.",
   },
+  fr: {
+    ask: "Posez une question",
+    placeholder: "Tapez votre question...",
+    submit: "Envoyer",
+    answer: "Réponse",
+    language: "Langue",
+    loading: "Chargement...",
+    error: "Une erreur s'est produite. Veuillez réessayer.",
+  },
 };
